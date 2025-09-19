@@ -20,6 +20,22 @@ double* load_vector(const char* filename, int* out_size);
 // que ambos a e b sejam vetores de tamanho size.
 void avaliar(double* a, double* b, int size, double prod_escalar);
 
+typedef struct {
+    int inicio;
+    int fim;
+    double *vetor_a;
+    double *vetor_b;
+    double *vetor_c;
+} thread_args;
+
+void *multiplicar_vetor(void *arg) {
+    thread_args *args = (thread_args *) arg;
+    for (int i = args->inicio; i < args->fim; i++) {
+        args->vetor_c[i] = args->vetor_a[i] * args->vetor_b[i];
+    }
+    return NULL;
+}
+
 int main(int argc, char* argv[]) {
     srand(time(NULL));
 
@@ -52,6 +68,9 @@ int main(int argc, char* argv[]) {
         printf("Erro ao ler arquivo %s\n", argv[3]);
         return 1;
     }
+
+    //Cria vetor do resultado 
+    double* c = malloc(a_size*sizeof(double));
     
     //Garante que entradas são compatíveis
     if (a_size != b_size) {
@@ -60,18 +79,50 @@ int main(int argc, char* argv[]) {
     }
 
     //Calcula produto escalar. Paralelize essa parte
-    double result = 0;
-    for (int i = 0; i < a_size; ++i) 
-        result += a[i] * b[i];
+    //double result = 0;
+    //for (int i = 0; i < a_size; ++i) 
+    //    result += a[i] * b[i];
     
     //    +---------------------------------+
     // ** | IMPORTANTE: avalia o resultado! | **
     //    +---------------------------------+
-    avaliar(a, b, a_size, result);
+    
+    //TESTA SE TAMANHO VETOR É MENOR QUE NÚMERO DE THREADS
+    if (a_size < n_threads) {
+        n_threads = a_size;
+    }
+    
+    pthread_t thread[n_threads];
+    thread_args argumentos[n_threads];
+    int elements_per_thread = a_size / n_threads;
+    for (int i = 0; i < n_threads; i++) {
+        argumentos[i].inicio = i * elements_per_thread;
+        if (i == n_threads - 1) {
+            argumentos[i].fim = a_size;    
+        } else {
+            argumentos[i].fim = (i+1) * elements_per_thread;
+        }
+        argumentos[i].vetor_a = a;
+        argumentos[i].vetor_b = b;
+        argumentos[i].vetor_c = c;
+        pthread_create(&thread[i], NULL, multiplicar_vetor, (void *) &argumentos[i]);
+    }
+
+    for (int i = 0; i < n_threads; i++) {
+        pthread_join(thread[i], NULL);
+    }
+
+    int sum = 0;
+    for (int i = 0; i < a_size; i++) {
+        sum = sum + c[i];
+    }
+    
+    avaliar(a, b, a_size, sum);
 
     //Libera memória
     free(a);
     free(b);
+    free(c);
 
     return 0;
 }

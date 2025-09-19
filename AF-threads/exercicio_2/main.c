@@ -32,6 +32,7 @@ void *somar_vetor(void *arg) {
     thread_args *args = (thread_args *) arg;
     for (int i = args->inicio; i < args->fim; i++) {
         args->vetor_c[i] = args->vetor_a[i] + args->vetor_b[i];
+        //printf("Vetor c[%f] = a[%f] + b[%f]\n", args->vetor_c[i], args->vetor_a[i], args->vetor_b[i]);
     }
     return NULL;
 }
@@ -81,12 +82,6 @@ int main(int argc, char* argv[]) {
     //Cria vetor do resultado 
     double* c = malloc(a_size*sizeof(double));
 
-    // Calcula com uma thread só. Programador original só deixou a leitura 
-    // do argumento e fugiu pro caribe. É essa computação que você precisa 
-    // paralelizar
-    for (int i = 0; i < a_size; ++i) 
-        c[i] = a[i] + b[i];
-
     //TESTA SE TAMANHO VETOR É MENOR QUE NÚMERO DE THREADS
     if (a_size < n_threads) {
         n_threads = a_size;
@@ -94,10 +89,14 @@ int main(int argc, char* argv[]) {
     
     pthread_t thread[n_threads];
     thread_args argumentos[n_threads];
+    int elements_per_thread = a_size / n_threads;
     for (int i = 0; i < n_threads; i++) {
-        int elements_per_thread = a_size / n_threads;
         argumentos[i].inicio = i * elements_per_thread;
-        argumentos[i].fim = (i+1) * elements_per_thread - 1;
+        if (i == n_threads - 1) {
+            argumentos[i].fim = a_size;    
+        } else {
+            argumentos[i].fim = (i+1) * elements_per_thread;
+        }
         argumentos[i].vetor_a = a;
         argumentos[i].vetor_b = b;
         argumentos[i].vetor_c = c;
@@ -121,3 +120,8 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+// O speedup obtido está proximo do speedup ideal?
+// Não
+// O programa escala, ou seja, o speedup aumenta se aumentarmos o número de threads?
+// Escala pouco
