@@ -95,12 +95,20 @@ int main(int argc, char* argv[]) {
     pthread_t thread[n_threads];
     thread_args argumentos[n_threads];
     int elements_per_thread = a_size / n_threads;
+    int sobra = a_size % n_threads;
+    int inicio = 0;
+    int fim = elements_per_thread;
     for (int i = 0; i < n_threads; i++) {
-        argumentos[i].inicio = i * elements_per_thread;
-        if (i == n_threads - 1) {
-            argumentos[i].fim = a_size;    
-        } else {
-            argumentos[i].fim = (i+1) * elements_per_thread;
+        if (sobra) {
+            fim++;
+        }
+        argumentos[i].inicio = inicio;
+        argumentos[i].fim = fim;
+        inicio = inicio + elements_per_thread;
+        fim = fim + elements_per_thread;
+        if (sobra) {
+            inicio++;
+            sobra--;
         }
         argumentos[i].vetor_a = a;
         argumentos[i].vetor_b = b;
