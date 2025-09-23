@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
         pthread_join(thread[i], NULL);
     }
 
-    int sum = 0;
+    double sum = 0;
     for (int i = 0; i < a_size; i++) {
         sum = sum + c[i];
     }
