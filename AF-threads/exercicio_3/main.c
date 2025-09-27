@@ -25,16 +25,14 @@ typedef struct {
     int fim;
     double *vetor_a;
     double *vetor_b;
-    double soma_parcial;
+    double *vetor_c;
 } thread_args;
 
-void *produto_escalar(void *arg) {
+void *multiplicar_vetor(void *arg) {
     thread_args *args = (thread_args *) arg;
-    double sum = 0;
     for (int i = args->inicio; i < args->fim; i++) {
-        sum += args->vetor_a[i] * args->vetor_b[i];
+        args->vetor_c[i] = args->vetor_a[i] * args->vetor_b[i];
     }
-    args->soma_parcial = sum;
     return NULL;
 }
 
@@ -96,29 +94,35 @@ int main(int argc, char* argv[]) {
     
     pthread_t thread[n_threads];
     thread_args argumentos[n_threads];
-    
     int elements_per_thread = a_size / n_threads;
     int sobra = a_size % n_threads;
     int inicio = 0;
-    
+    int fim = elements_per_thread;
     for (int i = 0; i < n_threads; i++) {
-        int fim = inicio + elements_per_thread + (sobra > 0 ? 1 : 0);
-        sobra -= sobra > 0 ? 1 : 0;
-        
+        if (sobra) {
+            fim++;
+        }
         argumentos[i].inicio = inicio;
         argumentos[i].fim = fim;
+        inicio = inicio + elements_per_thread;
+        fim = fim + elements_per_thread;
+        if (sobra) {
+            inicio++;
+            sobra--;
+        }
         argumentos[i].vetor_a = a;
         argumentos[i].vetor_b = b;
-        argumentos[i].soma_parcial = 0.0;
-        pthread_create(&thread[i], NULL, produto_escalar, (void *) &argumentos[i]);
-        
-        inicio = fim;
+        argumentos[i].vetor_c = c;
+        pthread_create(&thread[i], NULL, multiplicar_vetor, (void *) &argumentos[i]);
+    }
+
+    for (int i = 0; i < n_threads; i++) {
+        pthread_join(thread[i], NULL);
     }
 
     double sum = 0;
-    for (int i = 0; i < n_threads; i++) {
-        pthread_join(thread[i], NULL);
-        sum += argumentos[i].soma_parcial;
+    for (int i = 0; i < a_size; i++) {
+        sum = sum + c[i];
     }
     
     avaliar(a, b, a_size, sum);
