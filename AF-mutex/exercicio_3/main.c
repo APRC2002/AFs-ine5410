@@ -5,6 +5,7 @@
 
 int gValue = 0;
 pthread_mutex_t gMtx;
+pthread_mutexattr_t attrs;
 
 // Função imprime resultados na correção do exercício -- definida em helper.c
 void imprimir_resultados(int n, int** results);
@@ -35,6 +36,11 @@ void* compute_thread(void* arg) {
 
 
 int main(int argc, char** argv) {
+
+    pthread_mutexattr_init(&attrs);
+    pthread_mutexattr_settype(&attrs, PTHREAD_MUTEX_RECURSIVE);
+
+
     // Temos n_threads?
     if (argc < 2) {
         printf("Uso: %s n_threads x1 x2 ... xn\n", argv[0]);
@@ -48,7 +54,8 @@ int main(int argc, char** argv) {
     }
 
     //Inicializa o mutex
-    pthread_mutex_init(&gMtx, NULL);
+    pthread_mutex_init(&gMtx, &attrs);
+    pthread_mutexattr_destroy(&attrs);
 
     int args[n_threads];
     int* results[n_threads];
