@@ -24,15 +24,16 @@ char cabeceiras[2][11] = { { "CONTINENTE" }, { "ILHA" } };
 int total_veiculos;
 int veiculos_turno;
 int aux;
-sem_t sem_ilha_continente;
-sem_t sem_continente_ilha;
+//sem_t sem_ilha_continente;
+//sem_t sem_continente_ilha;
+sem_t sem_lado[2];  // sem_lado[CONTINENTE] e sem_lado[ILHA]
 sem_t sem_binario;
 
 /* Inicializa a ponte. */
 void ponte_inicializar(int* veiculos_turno) {
 	
-	sem_init(&sem_ilha_continente, 0, 0);
-	sem_init(&sem_continente_ilha, 0, *veiculos_turno);
+	sem_init(&sem_lado[ILHA], 0, 0);
+	sem_init(&sem_lado[CONTINENTE], 0, *veiculos_turno);
 	sem_init(&sem_binario, 0, 1);
 
 	/* Imprime direção inicial da travessia. NÃO REMOVER! */
@@ -42,51 +43,31 @@ void ponte_inicializar(int* veiculos_turno) {
 
 /* Função executada pelo veículo para ENTRAR em uma cabeceira da ponte. */
 void ponte_entrar(veiculo_t *v) {
-	cabeceira_t cabeceira = v->cabeceira;
-	if (cabeceira == CONTINENTE) {
-		sem_wait(&sem_continente_ilha);
-	}  else if (cabeceira == ILHA) {
-		sem_wait(&sem_ilha_continente);
-	}
+	sem_wait(&sem_lado[v->cabeceira]);
 }
 
 /* Função executada pelo veículo para SAIR de uma cabeceira da ponte. */
 void ponte_sair(veiculo_t *v) {
-	cabeceira_t cabeceira = v->cabeceira;
-	if (cabeceira == CONTINENTE) {
-		sem_wait(&sem_binario);
-		if (aux < veiculos_turno - 1) {
+	sem_wait(&sem_binario);
+	if (aux < veiculos_turno - 1) {
 			aux++;
 		} else {
 			printf("\n[PONTE] *** Novo sentido da travessia: %s -> %s. ***\n\n", cabeceiras[v->cabeceira], cabeceiras[!v->cabeceira]);
 			fflush(stdout);
 			for (int i = 0; i < veiculos_turno; i++) {
-				sem_post(&sem_continente_ilha);
+				sem_post(&sem_lado[v->cabeceira]);
 			}
 			aux = 0;
 		}
-		sem_post(&sem_binario);
-	}  else if (cabeceira == ILHA) {
-		sem_wait(&sem_binario);
-		if (aux < veiculos_turno - 1) {
-			aux++;
-		} else {
-			printf("\n[PONTE] *** Novo sentido da travessia: %s -> %s. ***\n\n", cabeceiras[v->cabeceira], cabeceiras[!v->cabeceira]);
-			fflush(stdout);
-			for (int i = 0; i < veiculos_turno; i++) {
-				sem_post(&sem_ilha_continente);
-			}
-			aux = 0;
-		}
-		sem_post(&sem_binario);
-	}
+	sem_post(&sem_binario);
 }
 
 /* FINALIZA a ponte. */
 void ponte_finalizar() {
 
-	sem_destroy(&sem_continente_ilha);
-	sem_destroy(&sem_ilha_continente);
+	sem_destroy(&sem_lado[ILHA]);
+	sem_destroy(&sem_lado[CONTINENTE]);
+	sem_destroy(&sem_binario);
 	
 	/* Imprime fim da execução! */
 	printf("[PONTE] FIM!\n\n");
